@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Expense Tracker</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(to right, #4facfe, #00f2fe);
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        color: #333;
+    }
+    h1 {
+        margin-bottom: 20px;
+        color: #fff;
+    }
+    .container {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    input, select, button {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+    }
+    button {
+        background-color: #4facfe;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #00f2fe;
+    }
+    .summary {
+        margin-top: 20px;
+    }
+    canvas {
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+<h1>Personal Expense Tracker</h1>
+<div class="container">
+    <label>Income Amount:</label>
+    <input type="number" id="income" placeholder="Enter your income">
+    
+    <label>Expense Amount:</label>
+    <input type="number" id="expenseAmount" placeholder="Enter expense amount">
+    
+    <label>Expense Category:</label>
+    <select id="expenseCategory">
+        <option value="Food">Food</option>
+        <option value="Transport">Transport</option>
+        <option value="Entertainment">Entertainment</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Other">Other</option>
+    </select>
+    
+    <button onclick="addExpense()">Add Expense</button>
+    
+    <div class="summary">
+        <h3>Balance: <span id="balance">0</span></h3>
+        <h4>Expense Summary:</h4>
+        <ul id="expenseList"></ul>
+    </div>
+    
+    <canvas id="expenseChart" width="400" height="200"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Load saved data from localStorage
+    let income = parseFloat(localStorage.getItem('income')) || 0;
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    
+    document.getElementById('income').value = income;
+    updateSummary();
+    
+    function addExpense() {
+        income = parseFloat(document.getElementById('income').value) || 0;
+        const amount = parseFloat(document.getElementById('expenseAmount').value);
+        const category = document.getElementById('expenseCategory').value;
+        
+        if (!amount || amount <= 0) {
+            alert('Please enter a valid expense amount.');
+            return;
+        }
+        
+        expenses.push({ amount, category });
+        
+        // Save data to localStorage
+        localStorage.setItem('income', income);
+        localStorage.setItem('expenses', JSON.stringify(expenses));
+        
+        document.getElementById('expenseAmount').value = '';
+        updateSummary();
+    }
+    
+    function updateSummary() {
+        const balance = income - expenses.reduce((sum, e) => sum + e.amount, 0);
+        document.getElementById('balance').textContent = balance.toFixed(2);
+        
+        const expenseList = document.getElementById('expenseList');
+        expenseList.innerHTML = '';
+        
+        const categoryTotals = {};
+        expenses.forEach(e => {
+            if (!categoryTotals[e.category]) categoryTotals[e.category] = 0;
+            categoryTotals[e.category] += e.amount;
+        });
+        
+        for (const cat in categoryTotals) {
+            const li = document.createElement('li');
+            li.textContent = `${cat}: ₹${categoryTotals[cat].toFixed(2)}`;
+            expenseList.appendChild(li);
+        }
+        
+        drawChart(categoryTotals);
+    }
+    
+    function drawChart(categoryTotals) {
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        if (window.myChart) window.myChart.destroy(); // Destroy previous chart
+        
+        window.myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(categoryTotals),
+                datasets: [{
+                    data: Object.values(categoryTotals),
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                    ],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
